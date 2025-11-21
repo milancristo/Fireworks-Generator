@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fireworks Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        canvas {
+            display: block;
+        }
+        /* Custom scrollbar for the controls */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: rgba(31, 41, 55, 0.5); 
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: rgba(75, 85, 99, 0.8); 
+            border-radius: 3px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(107, 114, 128, 1); 
+        }
+        /* Range input styling */
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Canvas Layer -->
+    <canvas id="canvas"></canvas>
+
+    <!-- UI Overlay -->
+    <div id="ui-container" class="absolute top-4 right-4 w-80 bg-gray-900/90 backdrop-blur-md text-white rounded-xl shadow-2xl border border-gray-700 transition-all duration-300 transform translate-x-0">
+        
+        <!-- Header / Toggle -->
+        <div class="p-4 border-b border-gray-700 flex justify-between items-center cursor-pointer" id="toggle-menu">
+            <h1 class="text-lg font-bold bg-gradient-to-r from-yellow-400 to-red-500 bg-clip-text text-transparent">SparkLab</h1>
+            <button class="text-gray-400 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Controls Content -->
+        <div id="controls-content" class="p-5 max-h-[80vh] overflow-y-auto custom-scroll">
+            
+            <!-- Auto Fire -->
+            <div class="mb-6 flex items-center justify-between">
+                <span class="text-sm font-medium text-gray-300">Auto-Fire Show</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="auto-fire" class="sr-only peer" checked>
+                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                </label>
+            </div>
+
+            <!-- Control Group: Physics -->
+            <div class="mb-6">
+                <h3 class="text-xs uppercase tracking-wider text-gray-500 mb-3 font-bold">Physics</h3>
+                
+                <div class="mb-4">
+                    <div class="flex justify-between text-xs mb-1">
+                        <label class="flex items-center">Particle Count</label>
+                        <input type="number" id="val-particles" min="30" max="400" value="100" class="text-indigo-400 bg-gray-800/50 rounded px-1 w-16 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500 border-none transition-all">
+                    </div>
+                    <input type="range" id="inp-particles" min="30" max="400" value="100" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex justify-between text-xs mb-1">
+                        <label class="flex items-center">Explosion Size</label>
+                        <input type="number" id="val-power" min="1" max="15" value="5" class="text-indigo-400 bg-gray-800/50 rounded px-1 w-16 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500 border-none transition-all">
+                    </div>
+                    <input type="range" id="inp-power" min="1" max="15" value="5" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex justify-between text-xs mb-1">
+                        <label class="flex items-center">Gravity</label>
+                        <input type="number" id="val-gravity" min="0.1" max="3.0" step="0.1" value="1.0" class="text-indigo-400 bg-gray-800/50 rounded px-1 w-16 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500 border-none transition-all">
+                    </div>
+                    <input type="range" id="inp-gravity" min="0.1" max="3.0" step="0.1" value="1.0" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex justify-between text-xs mb-1">
+                        <label class="flex items-center">Drag / Friction</label>
+                        <input type="number" id="val-friction" min="0.90" max="0.99" step="0.005" value="0.96" class="text-indigo-400 bg-gray-800/50 rounded px-1 w-16 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500 border-none transition-all">
+                    </div>
+                    <input type="range" id="inp-friction" min="0.90" max="0.99" step="0.005" value="0.96" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                </div>
+            </div>
+
+            <!-- Control Group: Style -->
+            <div class="mb-6">
+                <h3 class="text-xs uppercase tracking-wider text-gray-500 mb-3 font-bold">Style</h3>
+
+                <div class="grid grid-cols-3 gap-2 mb-4">
+                    <button class="style-btn active bg-gray-700 hover:bg-gray-600 text-xs py-2 rounded border border-gray-600 transition-colors" data-style="classic">Classic</button>
+                    <button class="style-btn bg-transparent hover:bg-gray-700 text-xs py-2 rounded border border-gray-600 transition-colors" data-style="pastel">Pastel</button>
+                    <button class="style-btn bg-transparent hover:bg-gray-700 text-xs py-2 rounded border border-gray-600 transition-colors" data-style="gold">Gold</button>
+                    <button class="style-btn bg-transparent hover:bg-gray-700 text-xs py-2 rounded border border-gray-600 transition-colors" data-style="electric">Electric</button>
+                    <button class="style-btn bg-transparent hover:bg-gray-700 text-xs py-2 rounded border border-gray-600 transition-colors" data-style="neon">Neon</button>
+                    <button class="style-btn bg-transparent hover:bg-gray-700 text-xs py-2 rounded border border-gray-600 transition-colors" data-style="fire">Fire</button>
+                </div>
+
+                <div class="flex items-center mb-2">
+                    <input type="checkbox" id="inp-trail" class="w-4 h-4 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500 focus:ring-2" checked>
+                    <label for="inp-trail" class="ml-2 text-xs text-gray-300">Long Trails</label>
+                </div>
+                
+                 <div class="flex items-center mb-2">
+                    <input type="checkbox" id="inp-sound-visual" class="w-4 h-4 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500 focus:ring-2">
+                    <label for="inp-sound-visual" class="ml-2 text-xs text-gray-300">Shockwave Effect</label>
+                </div>
+            </div>
+
+            <div class="pt-2 border-t border-gray-700">
+                 <button id="btn-clear" class="w-full py-2 bg-red-500/20 hover:bg-red-500/40 text-red-200 text-sm rounded transition-colors border border-red-500/50">Clear Sky</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tips Overlay (fades out) -->
+    <div id="tips" class="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-center pointer-events-none transition-opacity duration-1000">
+        <p class="text-white/50 text-sm bg-black/20 px-4 py-2 rounded-full backdrop-blur-sm">Click anywhere to launch • Drag controls to adjust</p>
+    </div>
+
+    <script>
+        // --- Setup Canvas ---
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { alpha: false }); // Optimization
+        let cw = window.innerWidth;
+        let ch = window.innerHeight;
+        
+        // High DPI scaling
+        const dpr = window.devicePixelRatio || 1;
+        
+        function resize() {
+            cw = window.innerWidth;
+            ch = window.innerHeight;
+            canvas.width = cw * dpr;
+            canvas.height = ch * dpr;
+            ctx.scale(dpr, dpr);
+            // CSS size
+            canvas.style.width = cw + 'px';
+            canvas.style.height = ch + 'px';
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // --- Configuration State ---
+        const config = {
+            particleCount: 100,
+            explosionPower: 5,
+            gravity: 1.0,
+            friction: 0.96,
+            hueMin: 0,
+            hueMax: 360,
+            style: 'classic', // classic, pastel, gold, electric, neon, fire
+            autoFire: true,
+            trails: true,
+            shockwave: false
+        };
+
+        // --- Classes ---
+
+        // Helper for random numbers
+        const random = (min, max) => Math.random() * (max - min) + min;
+
+        // Sound simulation (Visual only to avoid auto-play policy issues)
+        function createShockwave(x, y) {
+            if (!config.shockwave) return;
+            // Add a visual ripple effect (could be implemented as a special particle type)
+            // Simple implementation: flash the background slightly? 
+            // Or just let the particles handle it. 
+            // We'll add a subtle screen shake in the loop.
+        }
+
+        class Particle {
+            constructor(x, y, hue) {
+                this.x = x;
+                this.y = y;
+                this.hue = hue;
+                
+                // Physics based on config
+                const angle = random(0, Math.PI * 2);
+                const speed = random(1, config.explosionPower * 3); // Scale speed by power
+                
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                
+                this.alpha = 1;
+                // Decay varies slightly per particle for natural look
+                this.decay = random(0.005, 0.020); 
+                
+                // Visuals
+                this.brightness = random(50, 80);
+                this.size = random(1, 3);
+            }
+
+            update() {
+                // Physics
+                this.vx *= config.friction;
+                this.vy *= config.friction;
+                this.vy += config.gravity * 0.05; // Apply gravity
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Fade out
+                this.alpha -= this.decay;
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = `hsla(${this.hue}, 100%, ${this.brightness}%, ${this.alpha})`;
+                
+                // Glowing effect
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = `hsla(${this.hue}, 100%, 50%, 1)`;
+
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class Firework {
+            constructor(tx, ty) {
+                this.x = cw / 2;
+                this.y = ch; // Start at bottom
+                this.tx = tx; // Target X
+                this.ty = ty; // Target Y
+                this.distanceToTarget = Math.sqrt(Math.pow(tx - this.x, 2) + Math.pow(ty - this.y, 2));
+                this.angle = Math.atan2(ty - this.y, tx - this.x);
+                this.speed = 2;
+                this.acceleration = 1.05;
+                this.brightness = random(50, 70);
+                this.targetRadius = 1;
+                
+                // Color determination based on style
+                this.hue = this.getHue();
+                
+                this.coordinates = [];
+                this.coordinateCount = 3;
+                while(this.coordinateCount--) {
+                    this.coordinates.push([this.x, this.y]);
+                }
+                
+                this.dead = false;
+            }
+
+            getHue() {
+                switch(config.style) {
+                    case 'pastel': return random(0, 360); // Saturation lowered in draw
+                    case 'gold': return 45 + random(-10, 10);
+                    case 'electric': return random(180, 260);
+                    case 'neon': return random(280, 340);
+                    case 'fire': return random(0, 40);
+                    case 'classic': default: return random(0, 360);
+                }
+            }
+
+            update(index) {
+                // Update coordinates for trail
+                this.coordinates.pop();
+                this.coordinates.unshift([this.x, this.y]);
+
+                // Speed up
+                this.speed *= this.acceleration;
+
+                const vx = Math.cos(this.angle) * this.speed;
+                const vy = Math.sin(this.angle) * this.speed;
+
+                this.distanceTraveled = Math.sqrt(Math.pow(this.x - vx - (cw/2), 2) + Math.pow(this.y - vy - ch, 2));
+
+                if (this.distanceTraveled >= this.distanceToTarget) {
+                    // Reached target, explode
+                    createParticles(this.tx, this.ty, this.hue);
+                    this.dead = true;
+                } else {
+                    this.x += vx;
+                    this.y += vy;
+                }
+            }
+
+            draw(ctx) {
+                ctx.beginPath();
+                // Draw trail
+                ctx.moveTo(this.coordinates[this.coordinates.length - 1][0], this.coordinates[this.coordinates.length - 1][1]);
+                ctx.lineTo(this.x, this.y);
+                
+                let sat = 100;
+                if (config.style === 'pastel') sat = 60;
+                if (config.style === 'gold') sat = 80;
+
+                ctx.strokeStyle = `hsl(${this.hue}, ${sat}%, ${this.brightness}%)`;
+                ctx.stroke();
+            }
+        }
+
+        // --- Arrays ---
+        let particles = [];
+        let fireworks = [];
+
+        function createParticles(x, y, hue) {
+            let count = parseInt(config.particleCount);
+            
+            // Sound visualizer effect check
+            if(config.shockwave) {
+                // Just a visual marker for "boom"
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.fillStyle = `hsla(${hue}, 100%, 80%, 0.2)`;
+                ctx.beginPath();
+                ctx.arc(x, y, 100, 0, Math.PI*2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            while(count--) {
+                let pColor = hue;
+                // Variation for styles
+                if(config.style === 'classic') pColor = hue + random(-20, 20);
+                if(config.style === 'fire') pColor = random(0, 50);
+                
+                particles.push(new Particle(x, y, pColor));
+            }
+        }
+
+        // --- Main Loop ---
+        let limiterTotal = 20;
+        let limiterTick = 0;
+        let autoTimerTotal = 40; // Initial auto fire speed
+        let autoTimerTick = 0;
+
+        function loop() {
+            requestAnimationFrame(loop);
+
+            // Setup Background
+            // Use composite operation to create trails
+            ctx.globalCompositeOperation = 'destination-out';
+            // Trail length control: lower alpha = longer trails
+            const trailAlpha = config.trails ? 0.15 : 0.4;
+            ctx.fillStyle = `rgba(0, 0, 0, ${trailAlpha})`;
+            ctx.fillRect(0, 0, cw, ch);
+            
+            // Switch to lighter for glowing particles
+            ctx.globalCompositeOperation = 'lighter';
+
+            // Loop Fireworks (Rockets)
+            let i = fireworks.length;
+            while(i--) {
+                fireworks[i].draw(ctx);
+                fireworks[i].update(i);
+                if(fireworks[i].dead) {
+                    fireworks.splice(i, 1);
+                }
+            }
+
+            // Loop Particles (Explosions)
+            let j = particles.length;
+            while(j--) {
+                particles[j].draw(ctx);
+                particles[j].update();
+                if(particles[j].alpha <= 0) {
+                    particles.splice(j, 1);
+                }
+            }
+
+            // Auto Fire Logic
+            if (config.autoFire) {
+                autoTimerTick++;
+                // Randomize firing speed slightly
+                if (autoTimerTick >= autoTimerTotal) {
+                    // Launch 1 to 3 fireworks
+                    let shots = Math.floor(random(1, 2.5));
+                    for(let k=0; k<shots; k++) {
+                        // Random position, mostly in top 2/3 of screen
+                        fireworks.push(new Firework(
+                            random(cw * 0.1, cw * 0.9), 
+                            random(ch * 0.1, ch * 0.5)
+                        ));
+                    }
+                    autoTimerTick = 0;
+                    // Variable cadence
+                    autoTimerTotal = random(30, 80); 
+                }
+            }
+        }
+
+        // --- Inputs & UI Logic ---
+
+        // Toggle Menu
+        const toggleBtn = document.getElementById('toggle-menu');
+        const uiContainer = document.getElementById('ui-container');
+        let menuOpen = true;
+
+        toggleBtn.addEventListener('click', () => {
+            menuOpen = !menuOpen;
+            if (menuOpen) {
+                uiContainer.classList.remove('translate-x-full', 'opacity-50');
+                document.getElementById('controls-content').style.display = 'block';
+            } else {
+                // Keep just the header visible-ish or minimize nicely?
+                // Let's just slide it almost out
+                // Actually, better UX: Collapse the content, keep header
+                const content = document.getElementById('controls-content');
+                if (content.style.display === 'none') {
+                    content.style.display = 'block';
+                } else {
+                    content.style.display = 'none';
+                }
+            }
+        });
+
+        // Auto Fire
+        document.getElementById('auto-fire').addEventListener('change', (e) => {
+            config.autoFire = e.target.checked;
+        });
+
+        // Two-way binding for sliders and number inputs
+        function bindControl(sliderId, numberId, configKey) {
+            const slider = document.getElementById(sliderId);
+            const number = document.getElementById(numberId);
+
+            // Slider updates config and number input
+            slider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                config[configKey] = val;
+                number.value = val; // standardizes decimal display if needed
+            });
+
+            // Number input updates config and slider
+            number.addEventListener('input', (e) => {
+                let val = parseFloat(e.target.value);
+                if (!isNaN(val)) {
+                     config[configKey] = val;
+                     slider.value = val;
+                }
+            });
+        }
+
+        bindControl('inp-particles', 'val-particles', 'particleCount');
+        bindControl('inp-power', 'val-power', 'explosionPower');
+        bindControl('inp-gravity', 'val-gravity', 'gravity');
+        bindControl('inp-friction', 'val-friction', 'friction');
+
+        // Checkboxes
+        document.getElementById('inp-trail').addEventListener('change', (e) => {
+            config.trails = e.target.checked;
+        });
+        document.getElementById('inp-sound-visual').addEventListener('change', (e) => {
+            config.shockwave = e.target.checked;
+        });
+
+        // Style Buttons
+        const styleBtns = document.querySelectorAll('.style-btn');
+        styleBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Remove active class from all
+                styleBtns.forEach(b => {
+                    b.classList.remove('active', 'bg-gray-700');
+                    b.classList.add('bg-transparent');
+                });
+                // Add to clicked
+                e.target.classList.remove('bg-transparent');
+                e.target.classList.add('active', 'bg-gray-700');
+                
+                config.style = e.target.dataset.style;
+            });
+        });
+
+        // Clear Button
+        document.getElementById('btn-clear').addEventListener('click', () => {
+            fireworks = [];
+            particles = [];
+            // Force clear screen
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, cw, ch);
+        });
+
+        // --- Interaction ---
+        
+        // Mouse/Touch Click
+        canvas.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            fireworks.push(new Firework(e.clientX, e.clientY));
+            
+            // Hide tips on first interaction
+            const tips = document.getElementById('tips');
+            if(tips) tips.style.opacity = '0';
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            for (let i = 0; i < e.touches.length; i++) {
+                fireworks.push(new Firework(e.touches[i].clientX, e.touches[i].clientY));
+            }
+            const tips = document.getElementById('tips');
+            if(tips) tips.style.opacity = '0';
+        }, {passive: false});
+
+        // Start
+        loop();
+
+    </script>
+</body>
+</html>
